@@ -3,12 +3,15 @@ import SearchBar from "@/components/SearchBar";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { fetchMovies } from "@/services/api";
+import { updateSearchCount } from "@/services/appwrite";
 import useFetch from "@/services/useFetch";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [completedSearch, setCompletedSearch] = useState(""); // Track completed searches
+  const hasTracked = useRef<Set<string>>(new Set());
 
   const {
     data: movies,
@@ -28,12 +31,29 @@ const Search = () => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
         await loadMovies();
+        setCompletedSearch(searchQuery.trim()); // Mark search as completed after debounce
       } else {
         reset();
+        setCompletedSearch("");
       }
     }, 1000);
     return () => clearTimeout(timeoutId);
   }, [searchQuery, loadMovies, reset]);
+
+  // Only track when search is completed (after debounce)
+  useEffect(() => {
+    if (
+      completedSearch &&
+      movies?.length > 0 &&
+      movies[0] &&
+      !loading &&
+      !hasTracked.current.has(completedSearch)
+    ) {
+      updateSearchCount(completedSearch, movies[0]);
+      hasTracked.current.add(completedSearch);
+      console.log(`Tracked search: "${completedSearch}"`);
+    }
+  }, [completedSearch, movies, loading]);
 
   return (
     <View className="flex-1 bg-primary">
