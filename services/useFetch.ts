@@ -37,6 +37,7 @@ const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
   // Re-fetch when fetchFunction changes (when searchQuery changes)
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchFunction]);
 
   return { data, loading, error, refetch: fetchData, reset };

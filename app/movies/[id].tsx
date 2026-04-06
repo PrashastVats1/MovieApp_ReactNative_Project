@@ -1,10 +1,12 @@
 import { icons } from "@/constants/icons";
 import { fetchMovieDetails } from "@/services/api";
+import { isMovieSaved, saveMovie, unsaveMovie } from "@/services/appwrite";
 import useFetch from "@/services/useFetch";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Text,
@@ -26,7 +28,6 @@ const MovieInfo = ({ label, value }: MovieInfoProps) => (
   </View>
 );
 
-// Helper function to format currency
 const formatCurrency = (amount: number | undefined | null) => {
   if (!amount || amount === 0) return "N/A";
 
@@ -45,6 +46,44 @@ const MovieDetails = () => {
     fetchMovieDetails(id as string),
   );
 
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingLoading, setSavingLoading] = useState(false);
+
+  useEffect(() => {
+    const checkSaved = async () => {
+      if (movie?.id) {
+        const saved = await isMovieSaved(movie.id);
+        setIsSaved(saved);
+      }
+    };
+    checkSaved();
+  }, [movie?.id]);
+
+  const handleSaveToggle = async () => {
+    if (!movie) return;
+
+    setSavingLoading(true);
+    try {
+      if (isSaved) {
+        await unsaveMovie(movie.id);
+        setIsSaved(false);
+        Alert.alert("Removed", "Movie removed from saved list");
+      } else {
+        await saveMovie({
+          ...movie,
+          genre_ids: movie.genres?.map((g: any) => g.id) || [],
+        } as Movie);
+        setIsSaved(true);
+        Alert.alert("Saved", "Movie added to saved list");
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error", "Failed to save movie");
+    } finally {
+      setSavingLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View className="bg-primary flex-1 items-center justify-center">
@@ -56,7 +95,7 @@ const MovieDetails = () => {
   return (
     <View className="bg-primary flex-1">
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-        <View>
+        <View className="relative">
           <Image
             source={{
               uri: `https://image.tmdb.org/t/p/w500${movie?.poster_path}`,
@@ -64,7 +103,21 @@ const MovieDetails = () => {
             className="w-full h-[550px]"
             resizeMode="cover"
           />
+
+          {/* Save Button */}
+          <TouchableOpacity
+            className="absolute top-12 right-5 bg-dark-200 p-3 rounded-full"
+            onPress={handleSaveToggle}
+            disabled={savingLoading}
+          >
+            <Image
+              source={icons.save}
+              className="size-6"
+              tintColor={isSaved ? "#AB8BFF" : "#fff"}
+            />
+          </TouchableOpacity>
         </View>
+
         <View className="flex-col items-start justify-center mt-5 px-5">
           <Text className="text-white font-bold text-xl">{movie?.title}</Text>
 
@@ -91,7 +144,6 @@ const MovieDetails = () => {
           </View>
 
           <MovieInfo label="Status" value={movie?.status} />
-
           <MovieInfo label="Overview" value={movie?.overview} />
           <MovieInfo
             label="Genres"
