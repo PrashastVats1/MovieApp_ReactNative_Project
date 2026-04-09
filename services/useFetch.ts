@@ -5,14 +5,18 @@ const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Keep track of the latest fetch function without triggering effects
   const fetchFunctionRef = useRef(fetchFunction);
-  fetchFunctionRef.current = fetchFunction;
+
+  useEffect(() => {
+    fetchFunctionRef.current = fetchFunction;
+  }, [fetchFunction]);
 
   const fetchData = useCallback(async () => {
+    // Only fetch if not already loading
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
       const result = await fetchFunctionRef.current();
       setData(result);
     } catch (err) {
@@ -20,27 +24,17 @@ const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Stable fetchData function
 
-  const reset = useCallback(() => {
-    setData(null);
-    setLoading(false);
-    setError(null);
-  }, []);
-
+  // Only auto-run if autoFetch is true OR if the fetchFunction itself
+  // is meant to trigger a change (like a search query change)
   useEffect(() => {
     if (autoFetch) {
       fetchData();
     }
-  }, [autoFetch, fetchData]);
+  }, [autoFetch, fetchFunction]); // This allows search to work on Main Page
 
-  // Re-fetch when fetchFunction changes (when searchQuery changes)
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchFunction]);
-
-  return { data, loading, error, refetch: fetchData, reset };
+  return { data, loading, error, refetch: fetchData };
 };
 
 export default useFetch;

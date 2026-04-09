@@ -8,9 +8,13 @@ import React, { useCallback } from "react";
 import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
 
 const Saved = () => {
-  const { data: savedMovies, loading, refetch } = useFetch(getSavedMovies);
+  // Pass 'false' as the second argument to disable autoFetch
+  const {
+    data: savedMovies,
+    loading,
+    refetch,
+  } = useFetch(getSavedMovies, false);
 
-  // Refetch when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       refetch();
@@ -42,8 +46,15 @@ const Saved = () => {
         {savedMovies && savedMovies.length > 0 ? (
           <FlatList
             data={savedMovies}
-            renderItem={({ item }) => <MovieCard {...item} />}
-            keyExtractor={(item) => item.id.toString()}
+            // FIX 1: Use the Appwrite document string ID as the key
+            keyExtractor={(item) => item.$id}
+            renderItem={({ item }) => (
+              <MovieCard
+                {...item}
+                // FIX 2: Map 'movie_id' from Appwrite to the 'id' prop expected by MovieCard
+                id={item.movie_id}
+              />
+            )}
             numColumns={3}
             columnWrapperStyle={{
               justifyContent: "flex-start",

@@ -62,6 +62,11 @@ export const getTrendingMovies = async (): Promise<
 };
 
 // ===== SAVED MOVIES FUNCTIONS =====
+// 1. Add the interface here as well (or import it if exported)
+export interface SavedMovie extends Movie {
+  $id: string;
+  movie_id: number;
+}
 
 export const saveMovie = async (movie: Movie) => {
   try {
@@ -104,14 +109,17 @@ export const unsaveMovie = async (movieId: number) => {
   }
 };
 
-export const getSavedMovies = async (): Promise<Movie[]> => {
+// 2. Update the return type to SavedMovie[]
+export const getSavedMovies = async (): Promise<SavedMovie[]> => {
   try {
     const result = await database.listDocuments(
       DATABASE_ID,
       SAVED_MOVIES_COLLECTION_ID,
       [Query.orderDesc("$createdAt")],
     );
-    return result.documents as unknown as Movie[];
+
+    // 3. Cast the result to SavedMovie[]
+    return result.documents as unknown as SavedMovie[];
   } catch (error) {
     console.log("Get saved movies error:", error);
     return [];

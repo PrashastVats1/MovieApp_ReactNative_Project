@@ -14,6 +14,10 @@ interface Movie {
   vote_average: number;
   vote_count: number;
 }
+interface SavedMovie extends Movie {
+  $id: string;
+  movie_id: number;
+}
 
 interface SavedMovie {
   id: number;
